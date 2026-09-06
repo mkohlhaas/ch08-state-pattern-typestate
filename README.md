@@ -8,6 +8,51 @@ By consuming self by value during transitions, the compiler physically destroys
 the old state. This makes it statically impossible to call invalid methods
 (like trying to approve a draft or view the text of a pending post).
 
+## UML Diagrams
+
+### Class Diagram
+
+```
+┌──────────────────────────────┐      ┌───────────────────────────────┐
+│      DraftPost               │      │      PendingReviewPost        │
+├──────────────────────────────┤      ├───────────────────────────────┤
+│ - content: String            │      │ - content: String             │
+│                              │      │                               │
+│ + new() -> Self              │      │                               │
+│ + default() -> Self          │      │                               │
+│ + add_text(text: &str)       │      │                               │
+├──────────────────────────────┤      ├───────────────────────────────┤
+│ + request_review(self)       │ ───▶│ + approve(self)               │
+│   -> PendingReviewPost       │      │   -> PublishedPost            │
+│                              │      │ + reject(self) -> DraftPost   │
+└──────────────────────────────┘      └──────────────┬────────────────┘
+        ▲                                            │
+        │              consume self by value         │
+        └────────────────────────────────────────────┘
+                                             │
+                                             │ approve(self)
+                                             ▼
+                                   ┌──────────────────────────┐
+                                   │     PublishedPost        │
+                                   ├──────────────────────────┤
+                                   │ - content: String        │
+                                   │                          │
+                                   │ + content(&self) ->      │
+                                   │   &str   ◀── only state │
+                                   │          exposing it!    │
+                                   └──────────────────────────┘
+```
+
+### State Transition Diagram
+
+```
+    ┌────────────┐  request_review     ┌──────────────────┐  approve   ┌─────────────┐
+    │  Draft     │ ─────────────────▶ │  PendingReview   │ ─────────▶│  Published  │
+    └────────────┘                     └────────┬─────────┘            └─────────────┘
+         ▲                                      │ reject
+         └──────────────────────────────────────┘
+```
+
 ## Why this is superior to the Classic OO Pattern
 
 ## 1. Zero Runtime Overhead
